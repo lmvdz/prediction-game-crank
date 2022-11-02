@@ -22,8 +22,7 @@ config({path: '.env.'+env})
 const privateKeyEnvVariable = "PRIVATE_KEY"
 // ENVIRONMENT VARIABLE FOR THE BOT PRIVATE KEY
 const privateKey = process.env[privateKeyEnvVariable]
-const endpoint = process.env.DEVNET_ENDPOINT;
-const wsEndpoint = process.env.DEVNET_WS_ENDPOINT;
+const endpoint = process.env.DEVNET;
 const rpcCluster = process.env.CLUSTER as Cluster;
 
 if (privateKey === undefined) {
@@ -258,7 +257,7 @@ const updateLoop = (workspace: Workspace, vault: Vault, game: Game, crank: Crank
         
         
         
-    }, game.currentRound.account.finished ? 10 * 1000 : 15 * 1000)
+    }, game.currentRound.account.finished ? 20 * 1000 : 30 * 1000)
 }
 
 
@@ -282,14 +281,14 @@ const crankLoop = async (workspace: Workspace, vault: Vault, game: Game) => {
         console.error(error);
         setTimeout(() => {
             crankLoop(workspace, vault, game);
-        }, 1000)
+        }, 10 * 1000)
         
     }
 }
 
 async function run() {
     console.log('running');
-    const connection: Connection = new Connection(endpoint, { wsEndpoint })
+    const connection: Connection = new Connection(endpoint)
     console.log((await connection.getEpochInfo()).absoluteSlot)
 
     const workspace: Workspace = Workspace.load(connection, botWallet, rpcCluster, { commitment: 'confirmed' })
@@ -313,7 +312,7 @@ async function run() {
                     crankLoop(workspace, vault, game);
                 }
                 
-            }, 1000)
+            }, 10 * 1000)
             
         }
     })
@@ -328,7 +327,7 @@ const runLoop = () => {
         console.error(error);
         setTimeout(() => {
             runLoop();
-        }, 1000)
+        }, 1000 * 10)
     }
 }
 
@@ -336,7 +335,9 @@ if (cluster.isPrimary) {
     cluster.fork();
     cluster.on('exit', function(worker){
         console.log('Worker ' + worker.id + ' died..');
-        cluster.fork();
+        setTimeout(() => {
+            cluster.fork();
+        }, 60 * 1000)
     });
 } else {
     runLoop();
